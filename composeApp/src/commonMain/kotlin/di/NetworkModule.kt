@@ -13,6 +13,7 @@ import io.ktor.client.request.get
 
 import kotlinx.serialization.json.*
 import org.koin.dsl.module
+import ui.home.HomeViewModel
 
 
 val networkModule = module {
@@ -26,6 +27,10 @@ val networkModule = module {
 
     single<CatRepository> {
         CatRepositoryImpl(get())
+    }
+
+    single<HomeViewModel> {
+        HomeViewModel(get())
     }
 }
 

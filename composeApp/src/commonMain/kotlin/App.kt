@@ -1,13 +1,22 @@
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults.contentWindowInsets
+import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,6 +37,7 @@ import ui.details.DetailScreen
 import ui.home.HomeScreen
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatAppBar(
     currentScreen: CatScreen,
@@ -36,19 +46,19 @@ fun CatAppBar(
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
-        title = { Text(currentScreen.title) },
-
-        modifier = modifier,
+        title = { Text  (currentScreen.title) },
+        modifier = modifier.height(60.dp),
         navigationIcon = {
 
-                IconButton(onClick = navigateUp) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBack,
-                        contentDescription = ""
-                    )
+            IconButton(onClick = navigateUp) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowBack,
+                    contentDescription = ""
+                )
 
             }
-        }
+        },
+        windowInsets = WindowInsets.statusBars
     )
 }
 
@@ -76,8 +86,9 @@ fun AppContent(repository: CatRepository = koinInject()) {
 
         Scaffold(
             topBar = {
+
                 CatAppBar(
-                    modifier = Modifier.padding(top = 30.dp),
+
                     currentScreen = CatScreen.Home,
                     canNavigateBack = navController.previousBackStackEntry != null,
                     navigateUp = { navController.navigateUp() }
@@ -90,7 +101,7 @@ fun AppContent(repository: CatRepository = koinInject()) {
             NavHost(
                 navController = navController,
                 startDestination = CatScreen.Home.name,
-                modifier = Modifier.padding(it)
+                modifier = Modifier.padding(it).padding(top = it.calculateTopPadding())
             ) {
 
                 composable(route = CatScreen.Home.name) {

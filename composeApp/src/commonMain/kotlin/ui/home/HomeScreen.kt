@@ -2,30 +2,15 @@ package ui.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.key
+
+
 import domain.CatDto
-import domain.CatRepository
-import io.kamel.core.Resource
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
-import io.ktor.client.request.header
-import io.ktor.client.request.parameter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import ui.components.KamelImageComponent
 
@@ -33,31 +18,18 @@ import ui.components.KamelImageComponent
 @Composable
 fun HomeScreen(
 
-    repository: CatRepository = koinInject(), onNavigate: (String) -> Unit) {
-    var catList by remember {
-        mutableStateOf(emptyList<CatDto>())
-    }
+    viewModel: HomeViewModel = koinInject(), onNavigate: (String) -> Unit
+) {
 
-    LaunchedEffect(true) {
-        withContext(Dispatchers.Main) {
-            val cats = repository.fetchCats()
-            catList = cats
-        }
-    }
 
+
+    val uiState = viewModel.uiState.collectAsState().value
 
     Column() {
         ImageGrid(
-            catList,
-            onInfiniteScrolling = { scope ->
-                scope.launch {
-                    val formerCats = catList
-                    val cats = repository.fetchCats()
-                    val newlist = mutableListOf<CatDto>()
-                    newlist.addAll(formerCats)
-                    newlist.addAll(cats)
-                    catList = newlist
-                }
+            uiState.cats,
+            onInfiniteScrolling = {
+              viewModel.getCats()
             },
             onNavigate = onNavigate
         )
@@ -67,7 +39,11 @@ fun HomeScreen(
 
 
 @Composable
-fun ImageGrid(catList: List<CatDto>, onInfiniteScrolling: (CoroutineScope) -> Unit, onNavigate: (String) -> Unit) {
+fun ImageGrid(
+    catList: List<CatDto>,
+    onInfiniteScrolling: () -> Unit,
+    onNavigate: (String) -> Unit
+) {
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2)
     ) {
@@ -75,16 +51,22 @@ fun ImageGrid(catList: List<CatDto>, onInfiniteScrolling: (CoroutineScope) -> Un
 
             val cat = catList[index]
             if (index == catList.count() - 2) {
-                LaunchedEffect(true) {
-                    withContext(Dispatchers.Default) {
-                        onInfiniteScrolling(this)
-                    }
-                }
+
+                onInfiniteScrolling()
+
+
             }
 
-            KamelImageComponent(cat.url, modifier = Modifier.clickable {
-                onNavigate(cat.url)
-            })
+
+            key(cat.id){
+
+                KamelImageComponent(cat.url,
+                    width = cat.width.toInt(),
+                    height = cat.height.toInt(),
+                    modifier = Modifier.clickable {
+                    onNavigate(cat.url)
+                })
+            }
 
         }
     }
