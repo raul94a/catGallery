@@ -1,36 +1,56 @@
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
-import data.CatApiImpl
-import data.CatRepositoryImpl
-import di.initKoin
-import domain.CatDto
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
+
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+
 import domain.CatRepository
-import io.kamel.core.Resource
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
-import io.ktor.client.HttpClient
-import io.ktor.client.request.header
-import io.ktor.client.request.parameter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
+
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
+import ui.details.DetailScreen
+import ui.home.HomeScreen
 
+
+@Composable
+fun CatAppBar(
+    currentScreen: CatScreen,
+    canNavigateBack: Boolean,
+    navigateUp: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TopAppBar(
+        title = { Text(currentScreen.title) },
+
+        modifier = modifier,
+        navigationIcon = {
+
+                IconButton(onClick = navigateUp) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = ""
+                    )
+
+            }
+        }
+    )
+}
 
 @Composable
 @Preview
@@ -46,91 +66,58 @@ fun App() {
 
 @Composable
 fun AppContent(repository: CatRepository = koinInject()) {
+// Get current back stack entry
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    // Get the name of the current screen
+
 
     MaterialTheme {
 
         Scaffold(
             topBar = {
-                TopAppBar {
-                    Text("Compose App")
-                }
-            }
-        ) {
-            var catList by remember {
-                mutableStateOf(emptyList<CatDto>())
-            }
-
-            LaunchedEffect(true) {
-                withContext(Dispatchers.Main) {
-                    val cats = repository.fetchCats()
-                    catList = cats
-                }
-            }
-
-            Column(modifier = Modifier.padding(it)) {
-                ImageGrid(
-                    catList,
-                    onInfiniteScrolling = { scope ->
-                        scope.launch {
-                            val formerCats = catList
-                            val cats = repository.fetchCats()
-                            val newlist = mutableListOf<CatDto>()
-                            newlist.addAll(formerCats)
-                            newlist.addAll(cats)
-                            catList = newlist
-                        }
-                    }
+                CatAppBar(
+                    modifier = Modifier.padding(top = 30.dp),
+                    currentScreen = CatScreen.Home,
+                    canNavigateBack = navController.previousBackStackEntry != null,
+                    navigateUp = { navController.navigateUp() }
                 )
-
             }
-        }
 
-    }
-}
+        ) {
 
 
-@Composable
-fun ImageGrid(catList: List<CatDto>, onInfiniteScrolling: (CoroutineScope) -> Unit) {
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Fixed(2)
-    ) {
-        items(count = catList.count()) { index ->
+            NavHost(
+                navController = navController,
+                startDestination = CatScreen.Home.name,
+                modifier = Modifier.padding(it)
+            ) {
 
-            val cat = catList[index]
-            if (index == catList.count() - 2) {
-                LaunchedEffect(true) {
-                    withContext(Dispatchers.Default) {
-                        onInfiniteScrolling(this)
+                composable(route = CatScreen.Home.name) {
+                    HomeScreen { imageUrl ->
+                        println("ImageUrl is: $imageUrl")
+                        val lastIndex = imageUrl.lastIndexOf("/")
+                        val lastUrlPart = imageUrl.substring(startIndex = lastIndex + 1)
+                        val url = CatScreen.Details.name + "/$lastUrlPart"
+                        println("Url is: $url")
+                        navController.navigate(url)
                     }
                 }
+
+                composable(
+                    route = CatScreen.Details.title,
+                    arguments = listOf(navArgument("url") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val url : String? = backStackEntry.arguments?.getString("url")
+                    val data = "https://cdn2.thecatapi.com/images/$url"
+                    DetailScreen(data)
+                }
+
             }
 
-            StaggeredGridItem(cat)
-
         }
     }
+
 }
 
 
-@Composable
-fun StaggeredGridItem(cat: CatDto) {
-    val painterResource: Resource<Painter> = asyncPainterResource(cat.url) {
-
-        // CoroutineContext to be used while loading the image.
-        coroutineContext = Job() + Dispatchers.Main
-
-        // Customizes HTTP request
-        requestBuilder { // this: HttpRequestBuilder
-            header("Key", "Value")
-            parameter("Key", "Value")
-
-        }
-
-    }
-    KamelImage(
-        resource = painterResource,
-        contentDescription = "",
-        contentScale = ContentScale.FillWidth
-
-    )
-}
