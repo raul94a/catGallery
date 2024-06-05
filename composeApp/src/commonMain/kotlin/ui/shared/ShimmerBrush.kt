@@ -1,4 +1,4 @@
-package ui.components
+package ui.shared
 
 
 import androidx.compose.animation.core.RepeatMode

@@ -12,7 +12,7 @@ import androidx.compose.runtime.key
 
 import domain.CatDto
 import org.koin.compose.koinInject
-import ui.components.KamelImageComponent
+import ui.shared.KamelImageComponent
 
 
 @Composable
